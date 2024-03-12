@@ -287,7 +287,6 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-
     def __init__(self,
                  dim_in,
                  dim_out,
@@ -322,16 +321,21 @@ class Block(nn.Module):
             drop=drop
         )
 
+        # recurrent connections
+        self.recurrent_proj = nn.Linear(dim_out, dim_out)
+
     def forward(self, x, h, w):
         res = x
 
         x = self.norm1(x)
         attn = self.attn(x, h, w)
-        x = res + self.drop_path(attn)
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
+        
+        # apply recurrent projection
+        recurrent_input = res + self.drop_path(attn)
+        recurrent_output = self.recurrent_proj(recurrent_input)
+        x = recurrent_output + self.drop_path(self.mlp(self.norm2(recurrent_output)))
 
         return x
-
 
 class ConvEmbed(nn.Module):
     """ Image to Conv Embedding
